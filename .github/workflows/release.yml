@@ -1,0 +1,62 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build patches
+        env:
+          # ReVanced publishes its patcher and Gradle plugin to GitHub Packages, which needs a token even to read.
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
+          ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          ./gradlew :patches:buildAndroid -Pversion="$version" --stacktrace
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: patches
+          path: patches/build/libs/*.rvp
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rvp=$(ls patches/build/libs/*.rvp | head -n 1)
+          name=$(basename "$rvp")
+          # Bundle description read by ReVanced Manager ("Add patch bundle" with a remote URL).
+          jq -n \
+            --arg url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${name}" \
+            --arg at "$(date -u +%Y-%m-%dT%H:%M:%S)" \
+            --arg version "$GITHUB_REF_NAME" \
+            '{download_url: $url, created_at: $at, description: "Sound Connect patches", version: $version}' \
+            > patches-bundle.json
+          gh release create "$GITHUB_REF_NAME" "$rvp" patches-bundle.json \
+            --title "$GITHUB_REF_NAME" --generate-notes

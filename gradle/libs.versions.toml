@@ -1,5 +1,9 @@
 [versions]
-revanced-patcher = "22.0.1"
-# Tracking https://github.com/google/smali/issues/64.
+morphe-patcher = "2.0.0"
 #noinspection GradleDependency
-smali = "3.0.9"
+smali = "4220ae75f7"
+
+[libraries]
+# The Gradle plugin adds the dependency during the build; declared here for dependency update tools.
+#noinspection UnusedVersionCatalogEntry
+morphe-patcher = { module = "app.morphe:morphe-patcher", version.ref = "morphe-patcher" }

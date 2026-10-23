@@ -1,9 +1,9 @@
 extension {
-    name = "extensions/speaktochat.rve"
+    name = "extensions/speaktochat.mpe"
 }
 
 android {
-    namespace = "app.revanced.extension.sony.soundconnect"
+    namespace = "app.soundconnect.extension.speaktochat"
 }
 
 // The extension is plain Java. AGP adds the Kotlin standard library by default, and merging it

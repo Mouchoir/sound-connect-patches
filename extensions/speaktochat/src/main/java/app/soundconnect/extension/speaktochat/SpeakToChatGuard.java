@@ -1,4 +1,4 @@
-package app.revanced.extension.sony.soundconnect;
+package app.soundconnect.extension.speaktochat;
 
 import android.os.SystemClock;
 import android.util.Log;
